@@ -1,0 +1,3 @@
+User-agent: *
+    Allow: /
+    Sitemap: https://salorak.xyz/my_sitemap.xml
