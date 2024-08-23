@@ -1,0 +1,250 @@
+<html lang="fr"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Théorème de Thalès - Animation Interactive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+<meta name="description" content="Decouvrez une nouvelle façon d'apprendre le théorème de Thales!"></head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div id="thalesContainer" class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full">
+        <a href="/" data-index-id="667a75f678222b8ca7d4d139" id="index-link" class="text-gray-700 hover:text-blue-500">home</a><h1 class="text-3xl font-bold text-center mb-6 text-indigo-600">Le Théorème de Thalès</h1>
+        <div class="flex flex-col md:flex-row gap-8">
+            <div id="animationArea" class="w-full md:w-2/3 h-96 bg-gray-200 rounded-lg relative overflow-hidden">
+                <svg id="thalesSVG" class="w-full h-full" viewBox="0 0 400 300"></svg>
+            </div>
+            <div class="w-full md:w-1/3 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 text-indigo-500">Contrôles</h2>
+                    <div class="mb-4">
+                        <label for="angleSlider" class="block text-sm font-medium text-gray-700">Angle α:</label>
+                        <input type="range" id="angleSlider" min="15" max="75" value="45" class="w-full">
+                    </div>
+                    <div class="mb-4">
+                        <label for="scaleSlider" class="block text-sm font-medium text-gray-700">Échelle:</label>
+                        <input type="range" id="scaleSlider" min="50" max="150" value="100" class="w-full">
+                    </div>
+                </div>
+                <button id="explainBtn" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-300 mt-4">Explication détaillée</button>
+            </div>
+        </div>
+        <div id="explanation" class="mt-8 bg-indigo-50 p-4 rounded-lg hidden">
+            <h3 class="text-lg font-semibold mb-2 text-indigo-600">Explication du Théorème de Thalès</h3>
+            <p class="text-gray-700"></p>
+        </div>
+    </div>
+
+    <script>
+        const svg = document.getElementById('thalesSVG');
+        const angleSlider = document.getElementById('angleSlider');
+        const scaleSlider = document.getElementById('scaleSlider');
+        const explainBtn = document.getElementById('explainBtn');
+        const explanation = document.getElementById('explanation');
+        
+        let triangle, parallel, measurements;
+
+        function createSVGElement(type) {
+            return document.createElementNS("http://www.w3.org/2000/svg", type);
+        }
+
+        function initializeAnimation() {
+            triangle = createSVGElement('g');
+            parallel = createSVGElement('g');
+            measurements = createSVGElement('g');
+            
+            svg.appendChild(triangle);
+            svg.appendChild(parallel);
+            svg.appendChild(measurements);
+
+            const mainTriangle = createSVGElement('path');
+            mainTriangle.setAttribute('fill', 'none');
+            mainTriangle.setAttribute('stroke', '#4F46E5');
+            mainTriangle.setAttribute('stroke-width', '2');
+            triangle.appendChild(mainTriangle);
+
+            const parallelLine = createSVGElement('line');
+            parallelLine.setAttribute('stroke', '#EF4444');
+            parallelLine.setAttribute('stroke-width', '2');
+            parallelLine.setAttribute('stroke-dasharray', '5,5');
+            parallel.appendChild(parallelLine);
+
+            updateAnimation();
+        }
+
+        function updateAnimation() {
+            const angle = angleSlider.value * Math.PI / 180;
+            const scale = scaleSlider.value / 100;
+
+            // Calculate triangle points
+            const A = {x: 50, y: 250};
+            const B = {x: 350, y: 250};
+            const C = {
+                x: A.x + Math.cos(angle) * 200 * scale,
+                y: A.y - Math.sin(angle) * 200 * scale
+            };
+
+            // Update main triangle
+            const mainTriangle = triangle.firstChild;
+            mainTriangle.setAttribute('d', `M${A.x},${A.y} L${B.x},${B.y} L${C.x},${C.y} Z`);
+
+            // Calculate parallel line points
+            const D = {x: A.x + (B.x - A.x) * 0.6, y: A.y};
+            const E = {
+                x: A.x + (C.x - A.x) * 0.6,
+                y: A.y + (C.y - A.y) * 0.6
+            };
+
+            // Update parallel line
+            const parallelLine = parallel.firstChild;
+            parallelLine.setAttribute('x1', D.x);
+            parallelLine.setAttribute('y1', D.y);
+            parallelLine.setAttribute('x2', E.x);
+            parallelLine.setAttribute('y2', E.y);
+
+            // Update labels and measurements
+            updateLabelsAndMeasurements(A, B, C, D, E);
+
+            // Update ratios
+            updateRatios(A, B, C, D, E);
+        }
+
+        function updateLabelsAndMeasurements(A, B, C, D, E) {
+            measurements.innerHTML = '';
+            addLabel(A, 'A');
+            addLabel(B, 'B');
+            addLabel(C, 'C');
+            addLabel(D, 'D');
+            addLabel(E, 'E');
+
+            addMeasurement(A, D, 'AD');
+            addMeasurement(D, B, 'DB');
+            addMeasurement(A, E, 'AE');
+            addMeasurement(E, C, 'EC');
+        }
+
+        function addLabel(point, text) {
+            const label = createSVGElement('text');
+            label.setAttribute('x', point.x);
+            label.setAttribute('y', point.y);
+            label.setAttribute('fill', '#1F2937');
+            label.setAttribute('font-size', '14');
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('dy', '0.35em');
+            label.textContent = text;
+            measurements.appendChild(label);
+        }
+
+        function addMeasurement(start, end, text) {
+            const midX = (start.x + end.x) / 2;
+            const midY = (start.y + end.y) / 2;
+            const measurement = createSVGElement('text');
+            measurement.setAttribute('x', midX);
+            measurement.setAttribute('y', midY);
+            measurement.setAttribute('fill', '#4B5563');
+            measurement.setAttribute('font-size', '12');
+            measurement.setAttribute('text-anchor', 'middle');
+            measurement.setAttribute('dy', '-0.5em');
+            measurement.textContent = text;
+            measurements.appendChild(measurement);
+        }
+
+        function updateExplanation() {
+            const explanationText = `
+                Le théorème de Thalès stipule que dans un triangle ABC, si une droite (DE) est parallèle à un côté du triangle (BC) et coupe les deux autres côtés, alors elle détermine sur ces côtés des segments proportionnels.
+
+                Mathématiquement, cela s'exprime ainsi :
+                AD/DB = AE/EC = DE/BC
+
+                Cette propriété est fondamentale en géométrie et trouve de nombreuses applications dans la résolution de problèmes impliquant des triangles semblables et des proportions.
+
+                Dans notre animation :
+                1. Le triangle ABC représente le triangle principal.
+                2. La ligne rouge en pointillés DE est parallèle à BC.
+                3. En ajustant l'angle α, vous pouvez voir comment les proportions sont maintenues quelle que soit la forme du triangle.
+                4. L'échelle vous permet de visualiser le théorème à différentes tailles, démontrant son invariance par rapport à l'échelle.
+
+                Ce théorème est crucial pour comprendre les similitudes entre les triangles et est à la base de nombreuses techniques de mesure indirecte en mathématiques et en physique.
+            `;
+            explanation.querySelector('p').textContent = explanationText;
+        }
+
+        angleSlider.addEventListener('input', updateAnimation);
+        scaleSlider.addEventListener('input', updateAnimation);
+        explainBtn.addEventListener('click', () => {
+            explanation.classList.toggle('hidden');
+            updateExplanation();
+        });
+
+        initializeAnimation();
+
+        // Add some interactivity and visual enhancements
+        gsap.to('#thalesContainer', {duration: 1, scale: 1.02, yoyo: true, repeat: -1, ease: "power1.inOut"});
+        
+        explainBtn.addEventListener('mouseover', () => {
+            gsap.to(explainBtn, {duration: 0.3, scale: 1.1, backgroundColor: '#4338CA'});
+        });
+        
+        explainBtn.addEventListener('mouseout', () => {
+            gsap.to(explainBtn, {duration: 0.3, scale: 1, backgroundColor: '#6366F1'});
+        });
+
+        // Add a pulsating effect to highlight important points
+        function pulsatePoint(x, y) {
+            const point = createSVGElement('circle');
+            point.setAttribute('cx', x);
+            point.setAttribute('cy', y);
+            point.setAttribute('r', '5');
+            point.setAttribute('fill', '#EF4444');
+            svg.appendChild(point);
+
+            gsap.to(point, {
+                duration: 0.8,
+                scale: 1.5,
+                opacity: 0,
+                repeat: -1,
+                ease: "power1.inOut"
+            });
+        }
+
+        pulsatePoint(50, 250);  // Point A
+        pulsatePoint(350, 250); // Point B
+
+        // Add a mathematical formula display
+        const formulaDisplay = document.createElement('div');
+        formulaDisplay.className = 'mt-4 p-4 bg-gray-800 text-white rounded-lg overflow-x-auto';
+        formulaDisplay.innerHTML = `
+            <p class="text-center font-mono">AD/DB = AE/EC = DE/BC</p>
+        `;
+        document.getElementById('thalesContainer').appendChild(formulaDisplay);
+
+        // Add dynamic calculation of ratios
+        function updateRatios(A, B, C, D, E) {
+            const AD = math.distance([A.x, A.y], [D.x, D.y]);
+            const DB = math.distance([D.x, D.y], [B.x, B.y]);
+            const AE = math.distance([A.x, A.y], [E.x, E.y]);
+            const EC = math.distance([E.x, E.y], [C.x, C.y]);
+            const DE = math.distance([D.x, D.y], [E.x, E.y]);
+            const BC = math.distance([B.x, B.y], [C.x, C.y]);
+
+            const ratio1 = AD / DB;
+            const ratio2 = AE / EC;
+            const ratio3 = DE / BC;
+
+            formulaDisplay.innerHTML = `
+                <p class="text-center font-mono">
+                    AD/DB ≈ ${ratio1.toFixed(4)} <br>
+                    AE/EC ≈ ${ratio2.toFixed(4)} <br>
+                    DE/BC ≈ ${ratio3.toFixed(4)}
+                </p>
+            `;
+        }
+
+    </script>
+
+</body></html>
