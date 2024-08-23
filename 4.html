@@ -1,0 +1,72 @@
+<html><head>
+          <title>Cookie clicker</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+        <meta name="description" content="Jouez au cookie clicker depuis cette page"></head>
+        <body>
+          <nav class="bg-white">
+            <section class="bg-gradient-to-br from-amber-100 to-amber-200 p-8 rounded-xl shadow-2xl max-w-4xl mx-auto my-12">
+    <a href="/" data-index-id="667a75f678222b8ca7d4d139" id="index-link" class="text-gray-700 hover:text-blue-500">home</a><h2 class="text-4xl font-bold text-green-200 mb-6 text-center">Louis's Cooking</h2>
+    <div class="flex flex-col md:flex-row items-center justify-between">
+        <div class="w-64 h-64 bg-amber-300 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform" id="cookie">
+            <img src="https://cdn-icons-png.flaticon.com/512/541/541732.png" alt="Cookie" class="w-48 h-48">
+        </div>
+        <div class="mt-8 md:mt-0 md:ml-12">
+            
+            <div class="space-y-4">
+                <p class="text-2xl font-semibold text-amber-900 mb-4">Cookies: <span id="cookieCount" class="text-3xl">0</span></p><button class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-full shadow-md hover:shadow-lg transition duration-300" id="buyAutoClicker">
+                    Buy Auto  Louis's clickers (Cost: <span id="autoClickerCost">10</span>)
+                </button><p class="text-amber-800">Auto Clickers: <span id="autoClickerCount">0</span></p>
+                
+            </div>
+        </div>
+    </div>
+      <script>
+    let cookies = 5000;
+    let autoClickers = 0;
+    let autoClickerCost = 10;
+
+    const cookieElement = document.getElementById('cookie');
+    const cookieCountElement = document.getElementById('cookieCount');
+    const buyAutoClickerButton = document.getElementById('buyAutoClicker');
+    const autoClickerCountElement = document.getElementById('autoClickerCount');
+    const autoClickerCostElement = document.getElementById('autoClickerCost');
+
+    cookieElement.addEventListener('click', () => {
+        cookies++;
+        updateCookieCount();
+    });
+
+    buyAutoClickerButton.addEventListener('click', () => {
+        if (cookies >= autoClickerCost) {
+            cookies -= autoClickerCost;
+            autoClickers++;
+            autoClickerCost = Math.round(autoClickerCost * 1.15);
+            updateCookieCount();
+            updateAutoClickerCount();
+            updateAutoClickerCost();
+        }
+    });
+
+    function updateCookieCount() {
+        cookieCountElement.textContent = Math.floor(cookies);
+    }
+
+    function updateAutoClickerCount() {
+        autoClickerCountElement.textContent = autoClickers;
+    }
+
+    function updateAutoClickerCost() {
+        autoClickerCostElement.textContent = autoClickerCost;
+    }
+
+    setInterval(() => {
+        cookies += autoClickers * 0.1;
+        updateCookieCount();
+    }, 100);
+</script>
+</section>
+          </nav>
+        
+      
+    </body></html>
