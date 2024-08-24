@@ -156,28 +156,35 @@
       const controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
+      controls.minDistance = 5;
+      controls.maxDistance = 20;
 
       // Create black hole
-      const blackholeGeometry = new THREE.SphereGeometry(1, 32, 32);
+      const blackholeGeometry = new THREE.SphereGeometry(1, 64, 64);
       const blackholeMaterial = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 }
         },
         vertexShader: `
           varying vec2 vUv;
+          varying vec3 vPosition;
           void main() {
             vUv = uv;
+            vPosition = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
         fragmentShader: `
           uniform float time;
           varying vec2 vUv;
+          varying vec3 vPosition;
           void main() {
-            vec2 center = vec2(0.5, 0.5);
-            float dist = distance(vUv, center);
-            float intensity = smoothstep(0.4, 0.0, dist);
-            vec3 color = mix(vec3(0.0), vec3(0.1, 0.0, 0.2), intensity);
+            vec3 center = vec3(0.0);
+            float dist = distance(vPosition, center);
+            float intensity = 1.0 - smoothstep(0.0, 1.0, dist);
+            vec3 color = mix(vec3(0.0), vec3(0.7, 0.0, 1.0), pow(intensity, 3.0));
+            float warpFactor = 0.1 * sin(dist * 10.0 - time * 2.0);
+            color += vec3(warpFactor);
             gl_FragColor = vec4(color, 1.0);
           }
         `
@@ -186,7 +193,7 @@
       scene.add(blackhole);
 
       // Create accretion disk
-      const diskGeometry = new THREE.RingGeometry(1.5, 5, 64);
+      const diskGeometry = new THREE.RingGeometry(1.5, 5, 128);
       const diskMaterial = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 }
@@ -209,9 +216,11 @@
           void main() {
             float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
             float dist = length(vUv - 0.5) * 2.0;
-            float n = noise(vec2(angle * 10.0 + time * 0.5, dist * 10.0 - time * 2.0));
+            float n = noise(vec2(angle * 20.0 + time, dist * 10.0 - time * 3.0));
             vec3 color = mix(vec3(1.0, 0.3, 0.0), vec3(0.8, 0.1, 0.1), n);
+            color += vec3(0.2, 0.0, 0.3) * sin(dist * 20.0 - time * 5.0);
             float alpha = smoothstep(0.5, 1.0, dist) * (1.0 - smoothstep(0.8, 1.0, dist));
+            alpha *= 0.75 + 0.25 * sin(angle * 20.0 + time * 5.0);
             gl_FragColor = vec4(color, alpha);
           }
         `,
@@ -236,17 +245,36 @@
       const stars = new THREE.Points(starsGeometry, starsMaterial);
       scene.add(stars);
 
-      // Create light beams
-      const beamGeometry = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
-      const beamMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3 });
-      const beams = new THREE.Group();
-      for (let i = 0; i < 8; i++) {
-        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        beam.position.set(Math.cos(i * Math.PI / 4) * 3, 0, Math.sin(i * Math.PI / 4) * 3);
-        beam.rotation.x = Math.PI / 2;
-        beams.add(beam);
-      }
-      scene.add(beams);
+      // Create gravitational lensing effect
+      const lensGeometry = new THREE.SphereGeometry(1.2, 64, 64);
+      const lensMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 }
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          void main() {
+            vNormal = normal;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          varying vec3 vNormal;
+          void main() {
+            vec3 baseColor = vec3(0.0, 0.0, 0.1);
+            float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+            vec3 color = mix(baseColor, vec3(1.0), fresnel);
+            float warpFactor = 0.1 * sin(fresnel * 20.0 - time * 2.0);
+            color += vec3(warpFactor);
+            gl_FragColor = vec4(color, 0.3 * fresnel);
+          }
+        `,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      const lensEffect = new THREE.Mesh(lensGeometry, lensMaterial);
+      scene.add(lensEffect);
 
       let time = 0;
       function animate() {
@@ -260,9 +288,12 @@
         time += 0.01;
         blackhole.material.uniforms.time.value = time;
         accretionDisk.material.uniforms.time.value = time;
-        accretionDisk.rotation.z += 0.005;
-        stars.rotation.y += 0.0005;
-        beams.rotation.y += 0.01;
+        lensEffect.material.uniforms.time.value = time;
+        accretionDisk.rotation.z += 0.002;
+        stars.rotation.y += 0.0001;
+
+        blackhole.scale.setScalar(1 + 0.05 * Math.sin(time));
+        lensEffect.scale.setScalar(1 + 0.05 * Math.sin(time + Math.PI));
 
         controls.update();
         renderer.render(scene, camera);
