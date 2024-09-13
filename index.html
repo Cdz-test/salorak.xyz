@@ -6,7 +6,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="font-sans text-gray-800">
+<body>
   <header class="bg-white shadow-md py-4 px-6 flex flex-wrap items-center justify-center gap-10">
     <div class="flex items-center">
       <i class="fa-solid fa-rocket text-2xl text-blue-500 mr-2"></i>
@@ -45,7 +45,7 @@
         document.getElementById('menu').classList.toggle('hidden');
       });
     </script>
-  </header><div id="menu" class="lg:flex shadow-md rounded-lg py-4 justify-center bg-gradient-to-r from-blue-500 to-green-300">
+  </header><div id="menu" class="lg:flex shadow-md py-4 justify-center bg-gradient-to-r from-blue-500 to-green-300">
   <nav class="flex flex-col lg:flex-row justify-between items-center">
     <div class="flex flex-col lg:flex-row space-y-2 lg:space-y-0 lg:space-x-4 mb-4 lg:mb-0">
     <ul class="flex flex-col lg:flex-row space-y-2 lg:space-y-0 lg:space-x-4">
@@ -76,7 +76,7 @@
 
   <section class="bg-gradient-to-r from-blue-500 to-green-300 text-white py-32">
   <div class="max-w-4xl mx-auto text-center">
-    <h1 class="text-5xl font-bold mb-4">Welcome to Salorak.xyz</h1>
+    <h1 class="text-5xl font-bold mb-4">Welcome to Salorak.xyz !</h1>
     <p class="text-xl mb-8">Discover the power of our innovative technology!</p>
     <a href="#" class="bg-white text-blue-500 px-6 py-3 rounded-full hover:bg-blue-500 hover:text-white transition-colors duration-300">Explore Now</a>
   </div>
@@ -335,7 +335,65 @@
         </div>
     </div>
 </service-section>
-  <div class="bg-gray-100 py-12">
+  <section class="bg-gradient-to-r from-amber-50 to-yellow-100 p-8 font-serif animate-fade-in">
+    <h2 class="text-4xl font-bold text-center mb-8 text-amber-800 animate-bounce">La Vie de Léonard de Vinci</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-left">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Naissance et Jeunesse</h3>
+            <p class="text-gray-700">Né en 1452 à Vinci, Italie. Fils illégitime d'un notaire. Apprenti à Florence dans l'atelier de Verrocchio.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-right">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Carrière Artistique</h3>
+            <p class="text-gray-700">Peintre renommé. Œuvres célèbres : La Joconde, La Cène, L'Homme de Vitruve. Style unique mêlant réalisme et imagination.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-left">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Inventions et Sciences</h3>
+            <p class="text-gray-700">Ingénieur et inventeur prolifique. Conceptions en avance sur son temps : machines volantes, chars d'assaut, robots.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-right">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Anatomie et Nature</h3>
+            <p class="text-gray-700">Études approfondies du corps humain et de la nature. Dessins anatomiques précis. Observations botaniques détaillées.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-left">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Vie à la Cour</h3>
+            <p class="text-gray-700">Au service de puissants mécènes. Travaille pour les Médicis à Florence, Ludovic Sforza à Milan, François Ier en France.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 transform hover:scale-105 transition-transform duration-300 animate-slide-in-right">
+            <h3 class="text-2xl font-semibold mb-4 text-amber-700">Héritage</h3>
+            <p class="text-gray-700">Décédé en 1519 en France. Influence durable sur l'art et la science. Symbole de la Renaissance et du génie universel.</p>
+        </div>
+    </div>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 1.5s ease-out;
+        }
+        .animate-slide-in-left {
+            animation: slideInLeft 1s ease-out;
+        }
+        .animate-slide-in-right {
+            animation: slideInRight 1s ease-out;
+        }
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+        }
+    </style>
+</section><div class="bg-gray-100 py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h2 class="text-center text-3xl font-extrabold text-gray-900">Pricing Plans</h2>
       <div class="mt-10 grid grid-cols-1 gap-y-10 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-12">
