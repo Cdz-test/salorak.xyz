@@ -167,7 +167,7 @@
       controls.minDistance = 5;
       controls.maxDistance = 20;
 
-      // Create black hole
+      // Create realistic black hole
       const blackholeGeometry = new THREE.SphereGeometry(1, 64, 64);
       const blackholeMaterial = new THREE.ShaderMaterial({
         uniforms: {
@@ -190,8 +190,8 @@
             vec3 center = vec3(0.0);
             float dist = distance(vPosition, center);
             float intensity = 1.0 - smoothstep(0.0, 1.0, dist);
-            vec3 color = mix(vec3(0.0), vec3(0.7, 0.0, 1.0), pow(intensity, 3.0));
-            float warpFactor = 0.1 * sin(dist * 10.0 - time * 2.0);
+            vec3 color = mix(vec3(0.0), vec3(0.0, 0.0, 0.0), pow(intensity, 3.0));
+            float warpFactor = 0.3 * sin(dist * 10.0 - time * 2.0);
             color += vec3(warpFactor);
             gl_FragColor = vec4(color, 1.0);
           }
@@ -199,59 +199,6 @@
       });
       const blackhole = new THREE.Mesh(blackholeGeometry, blackholeMaterial);
       scene.add(blackhole);
-
-      // Create accretion disk
-      const diskGeometry = new THREE.RingGeometry(1.5, 5, 128);
-      const diskMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 }
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float time;
-          varying vec2 vUv;
-          
-          float noise(vec2 p) {
-            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-          }
-          
-          void main() {
-            float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
-            float dist = length(vUv - 0.5) * 2.0;
-            float n = noise(vec2(angle * 20.0 + time, dist * 10.0 - time * 3.0));
-            vec3 color = mix(vec3(1.0, 0.3, 0.0), vec3(0.8, 0.1, 0.1), n);
-            color += vec3(0.2, 0.0, 0.3) * sin(dist * 20.0 - time * 5.0);
-            float alpha = smoothstep(0.5, 1.0, dist) * (1.0 - smoothstep(0.8, 1.0, dist));
-            alpha *= 0.75 + 0.25 * sin(angle * 20.0 + time * 5.0);
-            gl_FragColor = vec4(color, alpha);
-          }
-        `,
-        transparent: true,
-        side: THREE.DoubleSide
-      });
-      const accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
-      accretionDisk.rotation.x = Math.PI / 2;
-      scene.add(accretionDisk);
-
-      // Create stars
-      const starsGeometry = new THREE.BufferGeometry();
-      const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05 });
-      const starVertices = [];
-      for (let i = 0; i < 10000; i++) {
-        const x = THREE.MathUtils.randFloatSpread(100);
-        const y = THREE.MathUtils.randFloatSpread(100);
-        const z = THREE.MathUtils.randFloatSpread(100);
-        starVertices.push(x, y, z);
-      }
-      starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-      const stars = new THREE.Points(starsGeometry, starsMaterial);
-      scene.add(stars);
 
       // Create gravitational lensing effect
       const lensGeometry = new THREE.SphereGeometry(1.2, 64, 64);
@@ -284,6 +231,20 @@
       const lensEffect = new THREE.Mesh(lensGeometry, lensMaterial);
       scene.add(lensEffect);
 
+      // Create stars
+      const starsGeometry = new THREE.BufferGeometry();
+      const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05 });
+      const starVertices = [];
+      for (let i = 0; i < 10000; i++) {
+        const x = THREE.MathUtils.randFloatSpread(100);
+        const y = THREE.MathUtils.randFloatSpread(100);
+        const z = THREE.MathUtils.randFloatSpread(100);
+        starVertices.push(x, y, z);
+      }
+      starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+      const stars = new THREE.Points(starsGeometry, starsMaterial);
+      scene.add(stars);
+
       let time = 0;
       function animate() {
         requestAnimationFrame(animate);
@@ -295,9 +256,7 @@
 
         time += 0.01;
         blackhole.material.uniforms.time.value = time;
-        accretionDisk.material.uniforms.time.value = time;
         lensEffect.material.uniforms.time.value = time;
-        accretionDisk.rotation.z += 0.002;
         stars.rotation.y += 0.0001;
 
         blackhole.scale.setScalar(1 + 0.05 * Math.sin(time));
