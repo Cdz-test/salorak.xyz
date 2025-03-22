@@ -140,137 +140,409 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const container = document.getElementById('blackhole-container');
-      const canvas = document.getElementById('blackhole-canvas');
-      const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('blackhole-container');
+  const canvas = document.getElementById('blackhole-canvas');
+  const renderer = new THREE.WebGLRenderer({ 
+    canvas: canvas, 
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance" 
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  function resizeRenderer() {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const needResize = canvas.width !== width || canvas.height !== height;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+    return needResize;
+  }
+  
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  
+  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.z = 10;
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.minDistance = 3;
+  controls.maxDistance = 25;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+
+  const diskGeometry = new THREE.RingGeometry(1.5, 8, 128, 12);
+  const diskMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      innerColor: { value: new THREE.Color(0xff7700) },
+      outerColor: { value: new THREE.Color(0x1a0000) }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vPosition;
       
-      function resizeRenderer() {
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        const needResize = canvas.width !== width || canvas.height !== height;
-        if (needResize) {
-          renderer.setSize(width, height, false);
-          camera.aspect = width / height;
-          camera.updateProjectionMatrix();
-        }
-        return needResize;
+      void main() {
+        vUv = uv;
+        vPosition = position;
+        float dist = length(position.xy);
+        float warp = sin(dist * 2.0 - 3.0) * 0.1;
+        vec3 pos = position;
+        pos.z += warp * (1.0 - smoothstep(1.5, 6.0, dist));
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform vec3 innerColor;
+      uniform vec3 outerColor;
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      
+      float random(vec2 co) {
+        return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
       }
       
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.z = 10;
-
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.minDistance = 5;
-      controls.maxDistance = 20;
-
-      // Create realistic black hole
-      const blackholeGeometry = new THREE.SphereGeometry(1, 64, 64);
-      const blackholeMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 }
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          varying vec3 vPosition;
-          void main() {
-            vUv = uv;
-            vPosition = position;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float time;
-          varying vec2 vUv;
-          varying vec3 vPosition;
-          void main() {
-            vec3 center = vec3(0.0);
-            float dist = distance(vPosition, center);
-            float intensity = 1.0 - smoothstep(0.0, 1.0, dist);
-            vec3 color = mix(vec3(0.0), vec3(0.0, 0.0, 0.0), pow(intensity, 3.0));
-            float warpFactor = 0.3 * sin(dist * 10.0 - time * 2.0);
-            color += vec3(warpFactor);
-            gl_FragColor = vec4(color, 1.0);
-          }
-        `
-      });
-      const blackhole = new THREE.Mesh(blackholeGeometry, blackholeMaterial);
-      scene.add(blackhole);
-
-      // Create gravitational lensing effect
-      const lensGeometry = new THREE.SphereGeometry(1.2, 64, 64);
-      const lensMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 }
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          void main() {
-            vNormal = normal;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float time;
-          varying vec3 vNormal;
-          void main() {
-            vec3 baseColor = vec3(0.0, 0.0, 0.1);
-            float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
-            vec3 color = mix(baseColor, vec3(1.0), fresnel);
-            float warpFactor = 0.1 * sin(fresnel * 20.0 - time * 2.0);
-            color += vec3(warpFactor);
-            gl_FragColor = vec4(color, 0.3 * fresnel);
-          }
-        `,
-        transparent: true,
-        side: THREE.DoubleSide
-      });
-      const lensEffect = new THREE.Mesh(lensGeometry, lensMaterial);
-      scene.add(lensEffect);
-
-      // Create stars
-      const starsGeometry = new THREE.BufferGeometry();
-      const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05 });
-      const starVertices = [];
-      for (let i = 0; i < 10000; i++) {
-        const x = THREE.MathUtils.randFloatSpread(100);
-        const y = THREE.MathUtils.randFloatSpread(100);
-        const z = THREE.MathUtils.randFloatSpread(100);
-        starVertices.push(x, y, z);
+      void main() {
+        float dist = length(vPosition.xy);
+        float innerGlow = smoothstep(1.5, 3.0, dist) * (1.0 - smoothstep(3.0, 8.0, dist));
+        float angle = atan(vPosition.y, vPosition.x);
+        float flow = sin(dist * 4.0 - time * 2.0 + angle * 8.0) * 0.5 + 0.5;
+        flow = pow(flow, 2.0) * innerGlow;
+        float noise = random(vPosition.xy * 0.1 + time * 0.01) * 0.05;
+        vec3 color = mix(innerColor, outerColor, smoothstep(2.0, 6.0, dist));
+        color += flow * innerColor * 2.0;
+        color += noise * innerGlow;
+        float hotspots = pow(random(vec2(angle + time * 0.1, dist)), 15.0) * 5.0;
+        color += hotspots * innerColor * innerGlow;
+        float alpha = smoothstep(1.5, 2.0, dist) * (1.0 - smoothstep(6.0, 8.0, dist));
+        gl_FragColor = vec4(color, alpha);
       }
-      starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-      const stars = new THREE.Points(starsGeometry, starsMaterial);
-      scene.add(stars);
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
+  accretionDisk.rotation.x = Math.PI / 3;
+  scene.add(accretionDisk);
 
-      let time = 0;
-      function animate() {
-        requestAnimationFrame(animate);
-        if (resizeRenderer()) {
-          const canvas = renderer.domElement;
-          camera.aspect = canvas.clientWidth / canvas.clientHeight;
-          camera.updateProjectionMatrix();
-        }
-
-        time += 0.01;
-        blackhole.material.uniforms.time.value = time;
-        lensEffect.material.uniforms.time.value = time;
-        stars.rotation.y += 0.0001;
-
-        blackhole.scale.setScalar(1 + 0.05 * Math.sin(time));
-        lensEffect.scale.setScalar(1 + 0.05 * Math.sin(time + Math.PI));
-
-        controls.update();
-        renderer.render(scene, camera);
+  const blackholeGeometry = new THREE.SphereGeometry(1, 128, 128);
+  const blackholeMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 }
+    },
+    vertexShader: `
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      
+      void main() {
+        vPosition = position;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
+    `,
+    fragmentShader: `
+      uniform float time;
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      
+      void main() {
+        float darkness = 0.0;
+        vec3 viewDir = normalize(-vPosition);
+        float rim = 1.0 - max(0.0, dot(viewDir, vNormal));
+        rim = pow(rim, 6.0);
+        vec3 color = vec3(0.0, 0.0, 0.02);
+        float warp = sin(length(vPosition) * 10.0 - time * 0.5) * 0.02 * rim;
+        color += vec3(warp);
+        color = mix(vec3(0.0), color, rim);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
+  });
+  
+  const blackhole = new THREE.Mesh(blackholeGeometry, blackholeMaterial);
+  scene.add(blackhole);
 
-      animate();
+  const lensGeometry = new THREE.SphereGeometry(1.2, 128, 128);
+  const lensMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      
+      void main() {
+        vec3 viewDir = normalize(-vPosition);
+        float fresnel = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 5.0);
+        float warpStrength = 0.15;
+        float warpFrequency = 15.0;
+        float timeFactor = time * 0.5;
+        float warp = warpStrength * sin((fresnel * warpFrequency) - timeFactor);
+        vec3 baseColor = vec3(0.0, 0.01, 0.04);
+        vec3 edgeColor = vec3(0.2, 0.05, 0.5);
+        vec3 color = mix(baseColor, edgeColor, fresnel * fresnel);
+        color += vec3(warp * 0.1);
+        float veins = pow(sin(fresnel * 50.0 + time) * 0.5 + 0.5, 8.0) * fresnel;
+        color += vec3(0.1, 0.1, 0.5) * veins;
+        float alpha = fresnel * 0.7;
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const lensEffect = new THREE.Mesh(lensGeometry, lensMaterial);
+  scene.add(lensEffect);
 
-      window.addEventListener('resize', resizeRenderer);
-    });
-  </script>
+  const glowGeometry = new THREE.SphereGeometry(1.5, 64, 64);
+  const glowMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      glowColor: { value: new THREE.Color(0x3311aa) }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform vec3 glowColor;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      
+      void main() {
+        vec3 viewDir = normalize(-vPosition);
+        float fresnel = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 4.0);
+        float pulse = 0.5 + 0.5 * sin(time * 0.5);
+        float glow = fresnel * pulse;
+        vec3 color = glowColor * glow;
+        float alpha = glow * 0.4;
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    side: THREE.BackSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const glowEffect = new THREE.Mesh(glowGeometry, glowMaterial);
+  scene.add(glowEffect);
+
+  const starsGeometry = new THREE.BufferGeometry();
+  const starCount = 20000;
+  const starVertices = new Float32Array(starCount * 3);
+  const starSizes = new Float32Array(starCount);
+  const starColors = new Float32Array(starCount * 3);
+  
+  for (let i = 0; i < starCount; i++) {
+    const i3 = i * 3;
+    const radius = 5 + Math.random() * 95;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    starVertices[i3] = radius * Math.sin(phi) * Math.cos(theta);
+    starVertices[i3+1] = radius * Math.sin(phi) * Math.sin(theta);
+    starVertices[i3+2] = radius * Math.cos(phi);
+    starSizes[i] = (Math.random() * 0.8 + 0.2) * 0.07;
+    const colorChoice = Math.random();
+    if (colorChoice > 0.97) {
+      starColors[i3] = 1.0;
+      starColors[i3+1] = 0.5 + Math.random() * 0.3;
+      starColors[i3+2] = 0.5 * Math.random();
+    } else if (colorChoice > 0.94) {
+      starColors[i3] = 0.5 * Math.random();
+      starColors[i3+1] = 0.5 + Math.random() * 0.3;
+      starColors[i3+2] = 1.0;
+    } else {
+      const val = 0.7 + Math.random() * 0.3;
+      starColors[i3] = val;
+      starColors[i3+1] = val;
+      starColors[i3+2] = val * (0.8 + Math.random() * 0.2);
+    }
+  }
+  
+  starsGeometry.setAttribute('position', new THREE.BufferAttribute(starVertices, 3));
+  starsGeometry.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
+  starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+  
+  const starsMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      pixelRatio: { value: window.devicePixelRatio }
+    },
+    vertexShader: `
+      attribute float size;
+      attribute vec3 color;
+      varying vec3 vColor;
+      uniform float time;
+      uniform float pixelRatio;
+      
+      void main() {
+        vColor = color;
+        float twinkle = 0.8 + 0.2 * sin(time + position.x * 100.0);
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = size * pixelRatio * twinkle * (300.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      
+      void main() {
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord);
+        if (dist > 0.5) discard;
+        float opacity = 1.0 - smoothstep(0.3, 0.5, dist);
+        gl_FragColor = vec4(vColor, opacity);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const stars = new THREE.Points(starsGeometry, starsMaterial);
+  scene.add(stars);
+
+  const jetGeometry = new THREE.CylinderGeometry(0.05, 0.2, 12, 16, 10, true);
+  const jetMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      jetColor: { value: new THREE.Color(0x4499ff) }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      
+      void main() {
+        vUv = uv;
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform vec3 jetColor;
+      varying vec2 vUv;
+      varying vec3 vPosition;
+      
+      void main() {
+        float dist = length(vec2(vPosition.x, vPosition.z));
+        float yPos = vPosition.y;
+        float flow = sin(yPos * 2.0 - time * 5.0) * 0.5 + 0.5;
+        flow = pow(flow, 2.0);
+        float edge = smoothstep(0.0, 0.2, dist) * (1.0 - smoothstep(0.2, 0.3, dist));
+        float intensity = (1.0 - vUv.y) * edge * flow;
+        vec3 color = jetColor * intensity;
+        float alpha = intensity * 0.7 * (1.0 - vUv.y);
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const topJet = new THREE.Mesh(jetGeometry, jetMaterial.clone());
+  topJet.position.y = 6;
+  topJet.rotation.x = Math.PI/2;
+  scene.add(topJet);
+  
+  const bottomJet = new THREE.Mesh(jetGeometry, jetMaterial.clone());
+  bottomJet.position.y = -6;
+  bottomJet.rotation.x = -Math.PI/2;
+  scene.add(bottomJet);
+
+  const ambientLight = new THREE.AmbientLight(0x111122, 0.8);
+  scene.add(ambientLight);
+
+  let composer;
+  if (THREE.EffectComposer) {
+    composer = new THREE.EffectComposer(renderer);
+    const renderPass = new THREE.RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    if (THREE.UnrealBloomPass) {
+      const bloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(container.clientWidth, container.clientHeight),
+        0.8,
+        0.3,
+        0.7
+      );
+      composer.addPass(bloomPass);
+    }
+  } else {
+    composer = null;
+  }
+
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    if (resizeRenderer()) {
+      const canvas = renderer.domElement;
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+      if (composer) {
+        composer.setSize(canvas.width, canvas.height);
+      }
+    }
+    time += 0.01;
+    blackhole.material.uniforms.time.value = time;
+    lensEffect.material.uniforms.time.value = time;
+    glowEffect.material.uniforms.time.value = time;
+    accretionDisk.material.uniforms.time.value = time;
+    stars.material.uniforms.time.value = time;
+    topJet.material.uniforms.time.value = time;
+    bottomJet.material.uniforms.time.value = time;
+    stars.rotation.y += 0.0001;
+    const pulse = 1 + 0.05 * Math.sin(time * 0.5);
+    accretionDisk.scale.set(pulse, pulse, 1);
+    const jetPulse = 1 + 0.2 * Math.sin(time * 2.0);
+    topJet.scale.set(jetPulse, 1, jetPulse);
+    bottomJet.scale.set(jetPulse, 1, jetPulse);
+    lensEffect.scale.setScalar(1 + 0.03 * Math.sin(time * 0.7));
+    controls.update();
+    if (composer) {
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
+  }
+  animate();
+
+  window.addEventListener('resize', resizeRenderer);
+});
+</script>
 </section><section class="bg-gradient-to-r from-amber-50 to-yellow-100 p-8 font-serif animate-fade-in">
     <h2 class="text-4xl font-bold text-center mb-8 text-amber-800 animate-bounce">La Vie de Léonard de Vinci</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
